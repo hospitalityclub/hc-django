@@ -1,0 +1,1 @@
+{% load cms_tags djangocms_icon_tags%}{% with icon_class=instance.icon %}<i class="flag-icon {{ icon_class|iconset_from_class }} {{ icon_class }} {{ instance.attributes.class }}" aria-hidden="true"></i>{% endwith %}

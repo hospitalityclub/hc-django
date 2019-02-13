@@ -1,0 +1,29 @@
+{% load cms_tags sekizai_tags static menu_tags %}<!doctype html>
+<html lang="{{ lang }}">
+    <head>
+        <meta charset="utf-8"> 
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <title>{% page_attribute "page_title" %}</title>
+        {% include 'admin/djangocms_icon/includes/assets.html' %}
+        <link rel="stylesheet" href="{% static 'node_modules/bootstrap/dist/css/bootstrap.min.css' %}">
+        {% render_block "css" %}
+    </head>
+    <body>
+        {% cms_toolbar %}
+        <nav class="navbar navbar-expand-md bg-dark navbar-dark">
+            <div class="container">
+                <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#collapsibleNavbar">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+                <div class="collapse navbar-collapse" id="collapsibleNavbar">
+                    <ul class="navbar-nav">{% show_menu 0 100 100 100 %}</ul>
+                </div>
+            </div>
+        </nav>
+        {% placeholder "content" %}
+        {% render_block "js" %}
+        <script src="{% static 'node_modules/jquery/dist/jquery.slim.min.js' %}"></script>
+        <script src="{% static 'node_modules/popper.js/dist/umd/popper.min.js' %}"></script>
+        <script src="{% static 'node_modules/bootstrap/dist/js/bootstrap.min.js' %}"></script>
+    </body>
+</html>

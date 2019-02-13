@@ -1,12 +1,5 @@
-# Logs
-
-# Runtime data
-pids
-*.pid
-*.seed
-*.pid.lock
-
-# Dependency directories
-**/bower_components/**
-**/node_modules/**
-**/jspm_packages/**
+venv/**
+var/log/**
+var/www/static/**
+**/__pycache__/**
+hc4/node_modules/static/node_modules/**
