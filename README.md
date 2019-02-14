@@ -19,7 +19,7 @@ source ./venv/bin/activate
 ```
 3. Install dependencies
 ```
-pip ./dependencies/py3.txt
+pip -r ./dependencies/py3.txt
 ```
 4. Install node modules
 ```
