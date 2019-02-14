@@ -1,4 +1,4 @@
-# Django Hospitality Club v4.0
+# Hospitality Club 4.0 Open Source - Django
 
 ## Environment Assumptions
 
