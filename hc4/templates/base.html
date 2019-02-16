@@ -7,22 +7,24 @@
         {% include 'admin/djangocms_icon/includes/assets.html' %}
         <link rel="stylesheet" href="{% static 'node_modules/bootstrap/dist/css/bootstrap.min.css' %}">
         {% render_block "css" %}
+        <script src="{% static 'node_modules/jquery/dist/jquery.slim.min.js' %}"></script>
     </head>
     <body>
         {% cms_toolbar %}
-        <nav class="navbar navbar-expand-md bg-dark navbar-dark">
+        <nav class="navbar navbar-expand-md bg-dark navbar-dark fixed-top cms-toolbar-expanded{% if cms_toolbar %} mt-5 {% endif %}">
             <div class="container">
                 <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#collapsibleNavbar">
                     <span class="navbar-toggler-icon"></span>
                 </button>
                 <div class="collapse navbar-collapse" id="collapsibleNavbar">
-                    <ul class="navbar-nav">{% show_menu 0 100 100 100 %}</ul>
+                    <ul class="navbar-nav">{% show_menu 0 100 100 100 'menu_item.html' %}</ul>
                 </div>
             </div>
         </nav>
-        {% placeholder "content" %}
+        <div class="container-fuild mt-5">
+            {% placeholder "content" %}
+        </div>
         {% render_block "js" %}
-        <script src="{% static 'node_modules/jquery/dist/jquery.slim.min.js' %}"></script>
         <script src="{% static 'node_modules/popper.js/dist/umd/popper.min.js' %}"></script>
         <script src="{% static 'node_modules/bootstrap/dist/js/bootstrap.min.js' %}"></script>
     </body>

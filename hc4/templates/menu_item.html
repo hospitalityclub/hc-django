@@ -1,0 +1,12 @@
+{% load menu_tags %}
+
+{% for child in children %}
+<li class="nav-item{% if child.selected %} active{% endif %}{% if child.children %} dropdown{% endif %}">
+	<a class="nav-link{% if child.children %} dropdown-toggle{% endif %}"{% if child.children %} id="navbarDropdown-{{ child.id }}" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"{% endif %} href="{{ child.attr.redirect_url|default:child.get_absolute_url }}">{{ child.get_menu_title }}</a>
+	{% if child.children %}
+	<div class="dropdown-menu" aria-labelledby="navbarDropdown-{{ child.id }}">
+		{% show_menu from_level to_level extra_inactive extra_active "menu_item_dropdown.html" "" "" child %}
+    </div>
+	{% endif %}
+</li>
+{% endfor %}
