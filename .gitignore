@@ -3,3 +3,4 @@ var/log/**
 var/www/static/**
 **/__pycache__/**
 hc4/node_modules/static/node_modules/**
+data/**
