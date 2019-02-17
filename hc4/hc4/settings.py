@@ -74,6 +74,7 @@ INSTALLED_APPS = [
     'djangocms_bootstrap4.contrib.bootstrap4_utilities',
 
     'node_modules',
+    'hccore',
 ]
 
 MIDDLEWARE = [
