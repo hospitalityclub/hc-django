@@ -457,6 +457,8 @@ class MemberRelation(UUIDModel):
     was_identified = models.BooleanField(_("was identified"), default=False, help_text=_("my passport or ID was chedked by member"))
 
     comment = models.TextField(_("comment"), max_length=4095)
+    reported_inappropriate = models.BooleanField(_("reported inappropriate"), default=False)
+    confirmed_inappropriate = models.BooleanField(_("confirmed inappropriate"), default=False)
 
     def __str__(self):
         return '{} - {}'.format(self.from_member, self.to_member)
@@ -464,3 +466,29 @@ class MemberRelation(UUIDModel):
     class Meta:
         verbose_name = _("member relation")
         verbose_name_plural = _("member relations")
+
+class Message(UUIDModel):
+    from_member = models.ForeignKey(
+        Member,
+        on_delete = models.CASCADE,
+        related_name = 'message_sender',
+        verbose_name = _("from member"),
+    )
+
+    to_member = models.ForeignKey(
+        Member,
+        on_delete = models.CASCADE,
+        related_name = 'message_recipient',
+        verbose_name = _("to member"),
+    )
+
+    message = models.TextField(_("message"), max_length=4095, blank=True, null=True)
+    read_at = models.DateTimeField(_("read at"), null=True, blank=True)
+    is_spam = models.BooleanField(_("is spam"), default=False)
+
+    def __str__(self):
+        return '{} - {}'.format(self.from_member, self.to_member)
+
+    class Meta:
+        verbose_name = _("message")
+        verbose_name_plural = _("message")
