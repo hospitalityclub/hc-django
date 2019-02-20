@@ -1,4 +1,4 @@
-from cities_light.models import City
+from cities_light.models import City, Country
 from django.db import models
 from django.conf import settings
 from django.utils.translation import gettext_lazy as _
@@ -23,6 +23,30 @@ class UUIDModel(models.Model):
 
 class Member(TranslatableModel, UUIDModel):
 
+    GENDER_CHOICES = Choices(
+        ('male', _("male")),
+        ('female', _("female")),
+        ('transgender', _("transgender")),
+        ('unspecified', _("unspecified")),
+    )
+
+    # status	enum('buggy','false','problems','signed','true','needmore','morecompleted','kicked','takenout','sleeper','inactive','passedaway')	YES			
+    STATUS_CHOICES = Choices(
+        ('active', _("active")),
+        ('kicked', _("kicked and banned")),
+        ('passedaway', _("passed away")),
+        ('takenout', _("taken out")),
+        ('sleeper', _("sleeper")),
+        ('inactive', _("inactive")),
+        ('true', _("true")),
+        ('false', _("false")),
+        ('problems', _("problems")),
+        ('buggy', _("buggy")),
+        ('signed', _("signed")),
+        ('needmore', _("need more")),
+        ('morecompleted', _("more completed")),
+    )
+
     # User model relationship, from which we inherit username, email, first_name, last_name, password, 
     # last_login and permission/group relationships.
     user = models.OneToOneField(
@@ -32,18 +56,6 @@ class Member(TranslatableModel, UUIDModel):
         null=True,
         blank=True,
     )
-
-    GENDER_CHOICES = Choices(
-        ('male', _("male")),
-        ('female', _("female")),
-        ('transgender', _("transgender")),
-        ('unspecified', _("unspecified")),
-    )
-
-    # TODO: make address a separate model with the ability to define primary one. Waiting for the decision of
-    # Django Cities Light dependency acceptance
-    # home_phone = models.TextField(_("Home Phone"), null=True, blank=True)
-    # fax = models.TextField(_("Fax"), null=True, blank=True)
 
     photo = models.ImageField(_("photo"), blank=True, null=True, upload_to='member_photos')
     birthday = models.DateField(_("birth date"), blank=True, null=True)
@@ -61,6 +73,10 @@ class Member(TranslatableModel, UUIDModel):
 
     # only accepted members can host/visit/write other members
     accepted = models.BooleanField(_("accepted into Hospitality Club"), default=False)
+    # all members have to agree with HC terms and conditions, this is a valid signature
+    agreed_with_terms = models.BooleanField(_("agreed with Hospitality Club Terms and Conditions"), default=True)
+    status = models.CharField(_("status"), max_length=15, choices=STATUS_CHOICES, default=STATUS_CHOICES.active)
+    ui_language = models.CharField(_("UI language"), max_length=7, default="en")
     
     # Extra information
     translations = TranslatedFields(
@@ -68,41 +84,26 @@ class Member(TranslatableModel, UUIDModel):
         occupation = models.CharField(_("occupation"), max_length=255, null=True, blank=True),
         organizations = models.TextField(_("member of organizations"), max_length=4095, null=True, blank=True,
                                         help_text=_("describe your activity in public organizations")),
+        internal_notes = models.TextField(_("internal notes"), null=True, blank=True,
+                                          help_text=_("for HC volunteer eyes only")),
+        feedback = models.TextField(_("feedback to HC"), max_length=4095, null=True, blank=True),
     )
 
     # TODO:
-    # feedback	varchar(255)	YES			
-    # terms	tinyint(1)	YES			
-    # category	int(11) unsigned	YES			
-    # status	enum('buggy','false','problems','signed','true','needmore','morecompleted','kicked','takenout','sleeper','inactive','passedaway')	YES			
-    # flags	varchar(255)	YES			
-    # level	tinyint(4)	NO		0	
-    # hcnotes	text	NO			
-    # ip	varchar(15)	NO			
     # vol_teaser	varchar(255)	YES			
     # vol_contact_info	varchar(255)	YES			
     # vol_why	varchar(255)	YES			
     # vol_what	varchar(255)	YES			
     # vol_additional	varchar(255)	YES			
-    # emailerror	varchar(255)	YES			
-    # lastaccess	datetime	YES			
+    # visincity	tinyint(1)	YES		1	
+    # visinlocation	tinyint(1)	YES	MUL	1	
     # nbhost	int(2)	NO		0	
     # nbguest	int(2)	NO		0	
     # nbcomment	int(2)	NO		0	
-    # visincity	tinyint(1)	YES		1	
-    # visinlocation	tinyint(1)	YES	MUL	1	
     # nbtrust	int(2)	NO		0	
-    # idcity	int(4)	NO	MUL	0	
     # nbpspcheck	int(2)	NO		0	
-    # lang_signup	varchar(255)	YES			
-    # lang_last	varchar(255)	YES			
     # nbvisit	int(8)	NO		0	
     # nbvisittoday	int(8)	NO		0	
-    # myvisitidlist	varchar(255)	YES			
-    # nbofremindreceivedsincelastlog	int(11)	NO		0	
-    # nbofemailreceivedsincelastlog	int(11)	NO		0	
-    # toberemind	datetime	YES			
-    # attractions_updated	datetime	NO		0000-00-00 00:00:00	
 
     def __str__(self):
         if self.hide_name:
@@ -138,9 +139,9 @@ class Address(TranslatableModel, UUIDModel):
         ('outside', _("allowed only outside")),
     )
 
-    postal_code = models.CharField(_("postal code"), max_length=15),
-    latitude = models.DecimalField(_("latitude"), max_digits=8, decimal_places=6),
-    longitude = models.DecimalField(_("longitude"), max_digits=8, decimal_places=6),
+    postal_code = models.CharField(_("postal code"), max_length=15, null=True, blank=True),
+    latitude = models.DecimalField(_("latitude"), max_digits=8, decimal_places=6, default=0, db_index=True),
+    longitude = models.DecimalField(_("longitude"), max_digits=8, decimal_places=6, default=0, db_index=True),
     
     city = models.ForeignKey(
         City,
@@ -183,11 +184,11 @@ class Address(TranslatableModel, UUIDModel):
     bring_sleeping_bag = models.BooleanField(_("guest must bring own sleeping bag"), default=0)
     bring_mattress = models.BooleanField(_("guest must bring own mattress"), default=0)
     bring_tent = models.BooleanField(_("guest must bring own tent"), default=0)
-    max_guests = models.PositiveSmallIntegerField(_("maximum guests allowed"), default=1, 
+    max_guests = models.PositiveSmallIntegerField(_("maximum guests allowed"), default=1, db_index=True, 
         help_text=_("how many guests maximum can you host at once?"))
 
     # limitations to the guests
-    max_stay_length = models.PositiveSmallIntegerField(_("maximum stay length"), default=0)
+    max_stay_length = models.PositiveSmallIntegerField(_("maximum stay length"), default=0, db_index=True)
     should_notify = models.PositiveSmallIntegerField(_("how many days ahead guest should confirm the arrival?"), default=0)
     must_notify = models.PositiveSmallIntegerField(_("how many days ahead guest must confirm the arrival?"), default=0)
     call_on_arrival = models.BooleanField(_("does guest have to phone call on arrival?"), default=0)
@@ -199,9 +200,10 @@ class Address(TranslatableModel, UUIDModel):
     no_drugs = models.BooleanField(_("drugs are not allowed"), default=1)
     no_alcohol = models.BooleanField(_("alcohol is not allowed"), default=1)
     pay_for_food = models.BooleanField(_("pay for consumed food"), default=0)
-    pay_for_comm = models.BooleanField(_("pay for used communication"), default=0, help_text=_("phone minutes, metered internet traffic"))
+    pay_for_comm = models.BooleanField(_("pay for used communication"), default=0, 
+                                       help_text=_("guests have the ability to use and to pay for phone minutes, metered internet traffic"))
     do_dishes = models.BooleanField(_("do dishes"), default=0)
-    pets_allowed = models.CharField(_("pets allowed"), max_length=31, choices=PETS_CHOICES, default=PETS_CHOICES.no)
+    pets_allowed = models.CharField(_("pets allowed"), max_length=31, choices=PETS_CHOICES, default=PETS_CHOICES.no, db_index=True)
 
     # translatable fields have to be dumped into this container
     translations = TranslatedFields(
@@ -402,3 +404,63 @@ class MemberTravel(TranslatableModel, UUIDModel):
         verbose_name = _("address")
         verbose_name_plural = _("addresses")
 
+
+class MemberLoginHistory(UUIDModel):
+    member = models.ForeignKey(
+        Member,
+        on_delete = models.CASCADE,
+        related_name = 'member_login_history',
+        verbose_name = _("member"),
+    )
+    ip_address = models.IPAddressField(_("IP Address")),
+    ip_country = models.ForeignKey(
+        Country,
+        on_delete = models.PROTECT,
+        related_name = 'member_login_history',
+        verbose_name = _("country of IP address")
+    )
+    ip_latitude = models.DecimalField(_("latitude"), max_digits=8, decimal_places=6, default=0),
+    ip_longitude = models.DecimalField(_("longitude"), max_digits=8, decimal_places=6, default=0),
+    latitude = models.DecimalField(_("latitude"), max_digits=8, decimal_places=6, default=0),
+    longitude = models.DecimalField(_("longitude"), max_digits=8, decimal_places=6, default=0),
+
+    def __str__(self):
+        return '{} / {} / {}'.format(self.ip_address, self.ip_country, self.created_at)
+
+    class Meta:
+        verbose_name = _("member login history")
+        verbose_name_plural = _("member login history")
+
+
+class MemberRelation(UUIDModel):
+    from_member = models.ForeignKey(
+        Member,
+        on_delete = models.CASCADE,
+        related_name = 'member_relations_sender',
+        verbose_name = _("from member"),
+    )
+
+    to_member = models.ForeignKey(
+        Member,
+        on_delete = models.CASCADE,
+        related_name = 'member_relations_recipient',
+        verbose_name = _("to member"),
+    )
+
+    follow = models.BooleanField(_("follow"), default=False)
+    trust = models.BooleanField(_("trust"), default=False)
+    was_guest = models.BooleanField(_("was guest"), default=False)
+    was_host = models.BooleanField(_("was host"), default=False)
+
+    # identity cross check
+    identify = models.BooleanField(_("identify"), default=False, help_text=_("I have checked member's passport or ID"))
+    was_identified = models.BooleanField(_("was identified"), default=False, help_text=_("my passport or ID was chedked by member"))
+
+    comment = models.TextField(_("comment"), max_length=4095)
+
+    def __str__(self):
+        return '{} - {}'.format(self.from_member, self.to_member)
+
+    class Meta:
+        verbose_name = _("member relation")
+        verbose_name_plural = _("member relations")

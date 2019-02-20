@@ -165,6 +165,10 @@ LANGUAGE_CODE = 'en'
 
 LANGUAGES = [
     ('en', _('English')),
+    ('de', _('German')),
+    ('fr', _('French')),
+    ('es', _('Spanish')),
+    ('pt', _('Portuguese')),
 ]
 
 TIME_ZONE = 'UTC'
