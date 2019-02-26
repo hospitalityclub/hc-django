@@ -17,7 +17,7 @@ django-cms==3.6.0
 django-extensions==2.1.5
 django-filer==1.4.4
 django-formtools==2.1
-django-hvad==1.8.0
+-e git://github.com/KristianOellegaard/django-hvad.git@da1cbe8736154270935e0b18528041a2f06ed670#egg=django_hvad
 django-js-asset==1.1.0
 django-model-utils==3.1.2
 django-mptt==0.9.1

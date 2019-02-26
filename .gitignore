@@ -1,6 +1,7 @@
 venv/**
 var/log/**
 var/www/static/**
+var/www/media/**
 **/__pycache__/**
 hc4/node_modules/static/node_modules/**
 data/**

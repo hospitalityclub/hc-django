@@ -3,6 +3,7 @@ from django.db import models
 from django.conf import settings
 from django.utils.translation import gettext_lazy as _
 from hvad.models import TranslatableModel, TranslatedFields
+from hvad.utils import get_cached_translation
 from model_utils import Choices
 import uuid
 from .managers import AbstractObjectOwnerManager
@@ -16,6 +17,12 @@ class UUIDModel(models.Model):
 
     # this allows to trace object ownership
     objects = AbstractObjectOwnerManager()
+
+    def safe_translation_getter(self, name, default=None):
+        cache = get_cached_translation(self)
+        if cache is None:
+            return default
+        return getattr(cache, name, default)
 
     class Meta:
         abstract = True
@@ -59,7 +66,7 @@ class Member(TranslatableModel, UUIDModel):
 
     photo = models.ImageField(_("photo"), blank=True, null=True, upload_to='member_photos')
     birthday = models.DateField(_("birth date"), blank=True, null=True)
-    gender = models.CharField(_("gender"), max_length=8, choices=GENDER_CHOICES, default=GENDER_CHOICES.unspecified)
+    gender = models.CharField(_("gender"), max_length=11, choices=GENDER_CHOICES, default=GENDER_CHOICES.unspecified)
 
     # Contact Methods moved to separate model group
     # email_2 = models.EmailField(_("email 2"), max_length=255, null=True, blank=True)
@@ -139,17 +146,13 @@ class Address(TranslatableModel, UUIDModel):
         ('outside', _("allowed only outside")),
     )
 
-    postal_code = models.CharField(_("postal code"), max_length=15, null=True, blank=True),
-    latitude = models.DecimalField(_("latitude"), max_digits=8, decimal_places=6, default=0, db_index=True),
-    longitude = models.DecimalField(_("longitude"), max_digits=8, decimal_places=6, default=0, db_index=True),
-    
     city = models.ForeignKey(
         City,
         on_delete = models.PROTECT,
         related_name = 'addresses',
         verbose_name = _("city"),
     )
-    
+
     member = models.ForeignKey(
         Member,
         on_delete = models.CASCADE,
@@ -159,18 +162,21 @@ class Address(TranslatableModel, UUIDModel):
 
     phone = models.CharField(_("phone"), max_length=31, null=True, blank=True)
     fax = models.CharField(_("fax"), max_length=31, null=True, blank=True)
-    status = models.BooleanField(_("accepting guests"), default=1) 
+    status = models.BooleanField(_("accepting guests"), default=True) 
         #CharField(_("status"), max_length=15, choices=ADDRESS_STATUS_CHOICES, default=ADDRESS_STATUS_CHOICES.open)
+    postal_code = models.CharField(_("postal code"), max_length=15, null=True, blank=True)
+    latitude = models.DecimalField(_("latitude"), max_digits=8, decimal_places=6, default=0, db_index=True)
+    longitude = models.DecimalField(_("longitude"), max_digits=8, decimal_places=6, default=0, db_index=True)
     hide_location = models.BooleanField(_("hide my location"), default=False)
 
     # living with fields
-    living_with_partner = models.BooleanField(_("living with partner"), default=0,
+    living_with_partner = models.BooleanField(_("living with partner"), default=False,
                                               help_text=_("boyfriend, girlfriend, wife, husband, etc."))
-    living_with_parents = models.BooleanField(_("living with parents"), default=0)
-    living_with_grandparents = models.BooleanField(_("living with grandparents"), default=0)
-    living_with_siblings = models.BooleanField(_("living with siblings"), default=0)
+    living_with_parents = models.BooleanField(_("living with parents"), default=False)
+    living_with_grandparents = models.BooleanField(_("living with grandparents"), default=False)
+    living_with_siblings = models.BooleanField(_("living with siblings"), default=False)
     living_with_pets = models.CharField(_("living with pets"), max_length=31, choices=PETS_CHOICES, default=PETS_CHOICES.no)
-    living_alone = models.BooleanField(_("living alone"), default=0)
+    living_alone = models.BooleanField(_("living alone"), default=True)
 
     # hosting options
     own_room = models.PositiveSmallIntegerField(_("own room"), default=0, help_text=_("do you offer a private room?"))
@@ -178,12 +184,12 @@ class Address(TranslatableModel, UUIDModel):
     sofa = models.PositiveSmallIntegerField(_("sofa"), default=0, help_text=_("do you offer to sleep on a sofa?"))
     mattress = models.PositiveSmallIntegerField(_("mattress"), default=0, help_text=_("do you offer a mattress (on the floor)?"))
     space_on_the_floor = models.BooleanField(_("space on the floor"), default=0, help_text=_("do you offer only space on the floor?"))
-    garden = models.BooleanField(_("garden"), default=0, help_text=_("do you have a garden?"))
-    sleep_together = models.BooleanField(_("sleep together"), default=0, 
+    garden = models.BooleanField(_("garden"), default=False, help_text=_("do you have a garden?"))
+    sleep_together = models.BooleanField(_("sleep together"), default=False, 
         help_text=_("will your guests have to sleep with you or other people? People in guests travel company does not count."))
-    bring_sleeping_bag = models.BooleanField(_("guest must bring own sleeping bag"), default=0)
-    bring_mattress = models.BooleanField(_("guest must bring own mattress"), default=0)
-    bring_tent = models.BooleanField(_("guest must bring own tent"), default=0)
+    bring_sleeping_bag = models.BooleanField(_("guest must bring own sleeping bag"), default=False)
+    bring_mattress = models.BooleanField(_("guest must bring own mattress"), default=False)
+    bring_tent = models.BooleanField(_("guest must bring own tent"), default=False)
     max_guests = models.PositiveSmallIntegerField(_("maximum guests allowed"), default=1, db_index=True, 
         help_text=_("how many guests maximum can you host at once?"))
 
@@ -191,18 +197,18 @@ class Address(TranslatableModel, UUIDModel):
     max_stay_length = models.PositiveSmallIntegerField(_("maximum stay length"), default=0, db_index=True)
     should_notify = models.PositiveSmallIntegerField(_("how many days ahead guest should confirm the arrival?"), default=0)
     must_notify = models.PositiveSmallIntegerField(_("how many days ahead guest must confirm the arrival?"), default=0)
-    call_on_arrival = models.BooleanField(_("does guest have to phone call on arrival?"), default=0)
+    call_on_arrival = models.BooleanField(_("does guest have to phone call on arrival?"), default=False)
     do_not_call_before = models.TimeField(_("do not call before"), default=0)
     do_not_call_after = models.TimeField(_("do not call after"), default=0)
-    guest_gender = models.CharField(_("preferred guest gender"), max_length=8, choices=Member.GENDER_CHOICES, 
+    guest_gender = models.CharField(_("preferred guest gender"), max_length=11, choices=Member.GENDER_CHOICES, 
                                     default=Member.GENDER_CHOICES.unspecified)
     smoking = models.CharField(_("smoking policy"), max_length=8, choices=SMOKING_POLICY_CHOICES, default=SMOKING_POLICY_CHOICES.no)
-    no_drugs = models.BooleanField(_("drugs are not allowed"), default=1)
-    no_alcohol = models.BooleanField(_("alcohol is not allowed"), default=1)
-    pay_for_food = models.BooleanField(_("pay for consumed food"), default=0)
-    pay_for_comm = models.BooleanField(_("pay for used communication"), default=0, 
+    no_drugs = models.BooleanField(_("drugs are not allowed"), default=True)
+    no_alcohol = models.BooleanField(_("alcohol is not allowed"), default=True)
+    pay_for_food = models.BooleanField(_("pay for consumed food"), default=False)
+    pay_for_comm = models.BooleanField(_("pay for used communication"), default=False, 
                                        help_text=_("guests have the ability to use and to pay for phone minutes, metered internet traffic"))
-    do_dishes = models.BooleanField(_("do dishes"), default=0)
+    do_dishes = models.BooleanField(_("do dishes"), default=False)
     pets_allowed = models.CharField(_("pets allowed"), max_length=31, choices=PETS_CHOICES, default=PETS_CHOICES.no, db_index=True)
 
     # translatable fields have to be dumped into this container
@@ -231,31 +237,42 @@ class Address(TranslatableModel, UUIDModel):
         pass
 
     def __str__(self):
-        return '{}, {} {}, {}, {}'.format(self.street, self.postal_code, self.city, self.get_region(), self.get_country())
+        if self.postal_code:
+            return '{}, {} {}, {}, {}'.format(self.street, self.postal_code, self.city, self.get_region(), self.get_country())
+        return '{}, {}, {}, {}'.format(self.street, self.city, self.get_region(), self.get_country())
 
     class Meta:
         verbose_name = _("address")
         verbose_name_plural = _("addresses")
 
 
-class ContactMethod(TranslatableModel, UUIDModel):
-    icon_class = models.CharField(_("icon class"), max_length=31, null=True, blank=True, help_text=_("CSS icon class"))
-    icon_image = models.ImageField(_("icon image"), upload_to='img/icons', null=True, blank=True)
-    url_prefix = models.URLField(_("URL prefix"), max_length=63, help_text=_("for example, for Telegram: http://t.me/"))
+# class ContactMethod(TranslatableModel, UUIDModel):
+#     icon_class = models.CharField(_("icon class"), max_length=31, null=True, blank=True, help_text=_("CSS icon class"))
+#     icon_image = models.ImageField(_("icon image"), upload_to='img/icons', null=True, blank=True)
+#     url_prefix = models.CharField(_("URL prefix"), max_length=63, help_text=_("for example, for Telegram: http://t.me/"))
 
-    translations = TranslatedFields(
-        name = models.CharField(_("name"), max_length=31, help_text=_("examples: mobile phone, Telegram, alternate email"))
-    )
+#     translations = TranslatedFields(
+#         name = models.CharField(_("name"), max_length=31, help_text=_("examples: mobile phone, Telegram, alternate email"))
+#     )
 
-    def __str__(self):
-        return self.name
+#     def __str__(self):
+#         return self.safe_translation_getter('name', str(self.pk))
 
-    class Meta:
-        verbose_name = _("contact method")
-        verbose_name_plural = _("contact methods")
+#     class Meta:
+#         verbose_name = _("contact method")
+#         verbose_name_plural = _("contact methods")
 
 
 class MemberContact(UUIDModel):
+    CONTACT_METHOD_CHOICES = Choices(
+        ('phone', _("phone")),
+        ('email', _("email")),
+        ('whatsapp', _("WhatsApp")),
+        ('facebook', _("Facebook")),
+        ('telegram', _("Telegram")),
+        ('skype', _("Skype")),
+    )
+
     member = models.ForeignKey(
         Member,
         on_delete = models.CASCADE,
@@ -263,15 +280,15 @@ class MemberContact(UUIDModel):
         verbose_name = _("member"),
     )
 
-    contact_method = models.ForeignKey(
-        ContactMethod,
-        on_delete = models.PROTECT,
-        related_name = 'member_contacts',
-        verbose_name = _("contact method")
-    )
-
+    # contact_method = models.ForeignKey(
+    #     ContactMethod,
+    #     on_delete = models.PROTECT,
+    #     related_name = 'member_contacts',
+    #     verbose_name = _("contact method")
+    # )
+    contact_method = models.CharField(_("contact method"), max_length=15, choices=CONTACT_METHOD_CHOICES, default=CONTACT_METHOD_CHOICES.phone)
     contact_detail = models.CharField(_("contact detail"), max_length=255, blank=True)
-    preferred = models.BooleanField(_("preferred"), default=0)
+    preferred = models.BooleanField(_("preferred"), default=False)
     share_by_default = models.BooleanField(_("share by default"), default=1)
 
     def __str__(self):
@@ -383,8 +400,8 @@ class MemberTravel(TranslatableModel, UUIDModel):
     )
 
     hc_experience = models.BooleanField(_("HC experience"), default=True)
-    visit_date_from = models.DateField(_("from"), auto_now_add=True)
-    visit_date_to = models.DateField(_("to"), auto_now_add=True)
+    visit_date_from = models.DateField(_("from"))
+    visit_date_to = models.DateField(_("to"))
     plan = models.BooleanField(_("plan"), default=False)
 
     translations = TranslatedFields(
@@ -401,8 +418,8 @@ class MemberTravel(TranslatableModel, UUIDModel):
         return '{}, {}, {}'.format(self.city, self.get_region(), self.get_country())
 
     class Meta:
-        verbose_name = _("address")
-        verbose_name_plural = _("addresses")
+        verbose_name = _("member travel")
+        verbose_name_plural = _("member travels")
 
 
 class MemberLoginHistory(UUIDModel):
@@ -466,6 +483,7 @@ class MemberRelation(UUIDModel):
     class Meta:
         verbose_name = _("member relation")
         verbose_name_plural = _("member relations")
+
 
 class Message(UUIDModel):
     from_member = models.ForeignKey(
