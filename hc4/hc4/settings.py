@@ -33,6 +33,7 @@ ALLOWED_HOSTS = []
 # Application definition
 
 INSTALLED_APPS = [
+    'django_extensions',
     'djangocms_admin_style',
     'django.contrib.admin',
     'django.contrib.auth',
@@ -42,6 +43,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'django.contrib.sites',
     'channels',
+    'hvad',
     'cms',
     'menus',
     'treebeard',
@@ -72,8 +74,10 @@ INSTALLED_APPS = [
     'djangocms_bootstrap4.contrib.bootstrap4_picture',
     'djangocms_bootstrap4.contrib.bootstrap4_tabs',
     'djangocms_bootstrap4.contrib.bootstrap4_utilities',
+    'cities_light',
 
     'node_modules',
+    'hccore',
 ]
 
 MIDDLEWARE = [
@@ -161,6 +165,10 @@ LANGUAGE_CODE = 'en'
 
 LANGUAGES = [
     ('en', _('English')),
+    ('de', _('German')),
+    ('fr', _('French')),
+    ('es', _('Spanish')),
+    ('pt', _('Portuguese')),
 ]
 
 TIME_ZONE = 'UTC'

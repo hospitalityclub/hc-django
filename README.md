@@ -11,42 +11,46 @@ Required system dependencies:
 
 ## Development setup
 
-1. Git clone
-2. Create virtual environment and activate it
-```
+* Git clone
+* Create virtual environment and activate it
+```bash
 virtualenv -p python3 ./venv
 source ./venv/bin/activate
 ```
-3. Install dependencies
-```
+* Install dependencies
+```bash
 pip -r ./dependencies/py3.txt
 ```
-4. Install node modules
-```
+* Install node modules
+```bash
 cd cointelligence/node_modules
 npm install
 cd ../..
 ```
-5. Update git submodules
-```
+* Update git submodules
+```bash
 git submodule update --remote --recursive --init
 ```
-6. Create Postgres role (user) and database owned by the role, we recommend using PgAdmin3
-7. Update `hc4/settings.py` DATABASES constant
-8. From now we work in hc4 project directory
-```
+* Create Postgres role (user) and database owned by the role, we recommend using PgAdmin3
+* Update `hc4/settings.py` DATABASES constant
+* From now we work in hc4 project directory
+```bash
 cd hc4
 ```
-9. Run migrations
-```
+* Run migrations
+```bash
 python manage.py migrate
 ```
-10. Create superuser
-```
+* Create superuser
+```bash
 python manage.py createsuperuser
 ```
-11. Run debug server
+* Populate Cities/Regions/Countries (takes forever)
+```bash
+python manage.py cities_light
 ```
+* Run debug server
+```bash
 python manage.py runserver
 ```
 It should start working on localhost:8000
