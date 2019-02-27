@@ -30,19 +30,19 @@ class MemberTravelInline(admin.TabularInline):
     min_num = 0
 
 
-class MemberHobbyInline(admin.TabularInline):
-    model = models.MemberHobby
-    fields = ['hobby']
+class MemberInterestInline(admin.TabularInline):
+    model = models.MemberInterest
+    fields = ['interest']
     extra = 0
     min_num = 0
 
 
-class MemberAdmin(TranslatableAdmin):
+class MemberAdmin(admin.ModelAdmin):
     inlines = [
         MemberContactInline, 
         MemberTravelInline,
         MemberLanguageInline,
-        MemberHobbyInline
+        MemberInterestInline,
     ]
     search_fields = ['user__username', 'user__first_name', 'user__last_name']
     autocomplete_fields = ['user']
@@ -56,7 +56,7 @@ admin.site.site_header = _("Hospitality Club Admin")
 admin.site.register(models.Address, AddressAdmin)
 admin.site.register(models.Member, MemberAdmin)
 admin.site.register(models.Language)
-admin.site.register(models.Hobby)
+admin.site.register(models.Interest)
 admin.site.register(models.MemberTravel, MemberTravelAdmin)
 admin.site.register(models.MemberLoginHistory)
 admin.site.register(models.MemberRelation)
