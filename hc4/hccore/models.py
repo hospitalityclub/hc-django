@@ -18,17 +18,18 @@ class UUIDModel(models.Model):
     # this allows to trace object ownership
     objects = AbstractObjectOwnerManager()
 
-    def safe_translation_getter(self, name, default=None):
-        cache = get_cached_translation(self)
-        if cache is None:
-            return default
-        return getattr(cache, name, default)
+    # TODO: move to separate abstracted translation model
+    # def safe_translation_getter(self, name, default=None):
+    #     cache = get_cached_translation(self)
+    #     if cache is None:
+    #         return default
+    #     return getattr(cache, name, default)
 
     class Meta:
         abstract = True
 
 
-class Member(TranslatableModel, UUIDModel):
+class Member(UUIDModel):
 
     GENDER_CHOICES = Choices(
         ('male', _("male")),
@@ -58,10 +59,10 @@ class Member(TranslatableModel, UUIDModel):
     # last_login and permission/group relationships.
     user = models.OneToOneField(
         settings.AUTH_USER_MODEL,
-        on_delete=models.CASCADE,
-        related_name='member',
-        null=True,
-        blank=True,
+        on_delete = models.CASCADE,
+        related_name = 'member',
+        null = True,
+        blank = True,
     )
 
     photo = models.ImageField(_("photo"), blank=True, null=True, upload_to='member_photos')
@@ -69,11 +70,6 @@ class Member(TranslatableModel, UUIDModel):
     gender = models.CharField(_("gender"), max_length=11, choices=GENDER_CHOICES, default=GENDER_CHOICES.unspecified)
 
     # Contact Methods moved to separate model group
-    # email_2 = models.EmailField(_("email 2"), max_length=255, null=True, blank=True)
-    # mobile_phone = models.CharField(_("mobile phone"), max_length=31, null=True, blank=True)
-    # mobile_phone_2 = models.CharField(_("mobile phone 2"), max_length=31, null=True, blank=True)
-    # work_phone = models.TextField(_("work phone"), max_length=31, null=True, blank=True)
-    # home_page = models.URLField(_("home page"), max_length=255, null=True, blank=True)
     hide_name = models.BooleanField(_("hide my name"), default=False)
     offer_tour = models.BooleanField(_("offer to show around"), default=False)
     offer_dinner = models.BooleanField(_("offer dinner"), default=False)
@@ -85,17 +81,6 @@ class Member(TranslatableModel, UUIDModel):
     status = models.CharField(_("status"), max_length=15, choices=STATUS_CHOICES, default=STATUS_CHOICES.active)
     ui_language = models.CharField(_("UI language"), max_length=7, default="en")
     
-    # Extra information
-    translations = TranslatedFields(
-        about_myself = models.TextField(_("about yourself"), max_length=4095, null=True, blank=True),
-        occupation = models.CharField(_("occupation"), max_length=255, null=True, blank=True),
-        organizations = models.TextField(_("member of organizations"), max_length=4095, null=True, blank=True,
-                                        help_text=_("describe your activity in public organizations")),
-        internal_notes = models.TextField(_("internal notes"), null=True, blank=True,
-                                          help_text=_("for HC volunteer eyes only")),
-        feedback = models.TextField(_("feedback to HC"), max_length=4095, null=True, blank=True),
-    )
-
     # TODO:
     # vol_teaser	varchar(255)	YES			
     # vol_contact_info	varchar(255)	YES			
@@ -110,26 +95,51 @@ class Member(TranslatableModel, UUIDModel):
     # nbtrust	int(2)	NO		0	
     # nbpspcheck	int(2)	NO		0	
     # nbvisit	int(8)	NO		0	
-    # nbvisittoday	int(8)	NO		0	
+    # nbvisittoday	int(8)	NO		0
 
     def __str__(self):
         if self.hide_name:
             return str(self.user.username)
         else:
-            return '{} {} ({})'.format(self.user.first_name, self.user.last_name, self.user.username)
+            return '{} {} ({})'.format(
+                str(self.user.first_name), 
+                str(self.user.last_name), 
+                str(self.user.username)
+            )
 
     class Meta:
         verbose_name = _("member")
         verbose_name_plural = _("members")
 
 
-class Address(TranslatableModel, UUIDModel):
-    # Address status will be binary for now
-    # ADDRESS_STATUS_CHOICES = Choices(
-    #     ('closed', _("can not host")),
-    #     ('maybe', _("maybe can host")),
-    #     ('open', _("open for guests")),
-    # )
+class TransMember(TranslatableModel, UUIDModel):
+    member = models.OneToOneField(
+        Member,
+        on_delete = models.CASCADE,
+        related_name = 'translated_member',
+        verbose_name = _("member"),
+    )
+
+    # Translatable extra information for Member
+    translations = TranslatedFields(
+        about_myself = models.TextField(_("about yourself"), max_length=4095, null=True, blank=True),
+        occupation = models.CharField(_("occupation"), max_length=255, null=True, blank=True),
+        organizations = models.TextField(_("member of organizations"), max_length=4095, null=True, blank=True,
+                                        help_text=_("describe your activity in public organizations")),
+        internal_notes = models.TextField(_("internal notes"), null=True, blank=True,
+                                          help_text=_("for HC volunteer eyes only")),
+        feedback = models.TextField(_("feedback to HC"), max_length=4095, null=True, blank=True),
+    )
+
+    def __str__(self):
+        return str(self.member)
+
+    class Meta:
+        verbose_name = _("translated member field")
+        verbose_name_plural = _("translated member fields")
+
+
+class Address(UUIDModel):
 
     PETS_CHOICES = Choices(
         ('no', _("no")),
@@ -145,6 +155,8 @@ class Address(TranslatableModel, UUIDModel):
         ('balcony', _("allowed in the balcony, terrace or garden")),
         ('outside', _("allowed only outside")),
     )
+
+    street = models.CharField(_("street address"), max_length=255)
 
     city = models.ForeignKey(
         City,
@@ -211,7 +223,47 @@ class Address(TranslatableModel, UUIDModel):
     do_dishes = models.BooleanField(_("do dishes"), default=False)
     pets_allowed = models.CharField(_("pets allowed"), max_length=31, choices=PETS_CHOICES, default=PETS_CHOICES.no, db_index=True)
 
-    # translatable fields have to be dumped into this container
+    def get_region(self):
+        return self.city.region
+
+    def get_country(self):
+        return self.city.country
+
+    # TODO: Implement Nearby Big Cities
+    def get_big_cities(self):
+        pass
+
+    def __str__(self):
+        # TODO: get translated street
+        street = str(self.street)
+        if self.postal_code:
+            street += ", {}".format(str(self.postal_code))
+        else:
+            street += ","
+        return '{} {}, {}, {}'.format(
+            street,
+            str(self.city), 
+            str(self.get_region()), 
+            str(self.get_country()),
+        )
+
+    class Meta:
+        verbose_name = _("address")
+        verbose_name_plural = _("addresses")
+
+
+class TransAddress(TranslatableModel, UUIDModel):
+
+    address = models.OneToOneField(
+        Address,
+        on_delete = models.CASCADE,
+        related_name = 'translated_address',
+        verbose_name = _("address"),
+        null = True,
+        blank = False,
+    )
+
+    # translatable fields for Address model
     translations = TranslatedFields(
         street = models.CharField(_("street address"), max_length=255),
         best_times = models.CharField(_("best times to visit"), max_length=255),
@@ -226,41 +278,12 @@ class Address(TranslatableModel, UUIDModel):
         additional_info = models.TextField(_("additional information"), max_length=4095, null=True, blank=True),
     )
 
-    def get_region(self):
-        return self.city.region
-
-    def get_country(self):
-        return self.city.country
-
-    # TODO: Implement Nearby Big Cities
-    def get_big_cities(self):
-        pass
-
     def __str__(self):
-        if self.postal_code:
-            return '{}, {} {}, {}, {}'.format(self.street, self.postal_code, self.city, self.get_region(), self.get_country())
-        return '{}, {}, {}, {}'.format(self.street, self.city, self.get_region(), self.get_country())
+        return str(self.address)
 
     class Meta:
-        verbose_name = _("address")
-        verbose_name_plural = _("addresses")
-
-
-# class ContactMethod(TranslatableModel, UUIDModel):
-#     icon_class = models.CharField(_("icon class"), max_length=31, null=True, blank=True, help_text=_("CSS icon class"))
-#     icon_image = models.ImageField(_("icon image"), upload_to='img/icons', null=True, blank=True)
-#     url_prefix = models.CharField(_("URL prefix"), max_length=63, help_text=_("for example, for Telegram: http://t.me/"))
-
-#     translations = TranslatedFields(
-#         name = models.CharField(_("name"), max_length=31, help_text=_("examples: mobile phone, Telegram, alternate email"))
-#     )
-
-#     def __str__(self):
-#         return self.safe_translation_getter('name', str(self.pk))
-
-#     class Meta:
-#         verbose_name = _("contact method")
-#         verbose_name_plural = _("contact methods")
+        verbose_name = _("translated address field")
+        verbose_name_plural = _("translated address fields")
 
 
 class MemberContact(UUIDModel):
@@ -271,6 +294,7 @@ class MemberContact(UUIDModel):
         ('facebook', _("Facebook")),
         ('telegram', _("Telegram")),
         ('skype', _("Skype")),
+        ('homepage', _("home page"))
     )
 
     member = models.ForeignKey(
@@ -280,19 +304,13 @@ class MemberContact(UUIDModel):
         verbose_name = _("member"),
     )
 
-    # contact_method = models.ForeignKey(
-    #     ContactMethod,
-    #     on_delete = models.PROTECT,
-    #     related_name = 'member_contacts',
-    #     verbose_name = _("contact method")
-    # )
     contact_method = models.CharField(_("contact method"), max_length=15, choices=CONTACT_METHOD_CHOICES, default=CONTACT_METHOD_CHOICES.phone)
     contact_detail = models.CharField(_("contact detail"), max_length=255, blank=True)
     preferred = models.BooleanField(_("preferred"), default=False)
     share_by_default = models.BooleanField(_("share by default"), default=1)
 
     def __str__(self):
-        return '{}: {}'.format(self.contact_method, self.contact_detail)
+        return '{}: {}'.format(str(self.contact_method), str(self.contact_detail))
 
     class Meta:
         verbose_name = _("member contact")
@@ -304,12 +322,13 @@ class Language(UUIDModel):
 
     language = models.CharField(_("ISO language name"), max_length=31)
     language_native = models.CharField(_("native name"), max_length=31)
-    iso639_1 = models.CharField(_("ISO 639-1 code"), max_length=2)
+    # 2 symbols by default, but can include dash-localization suffix
+    iso639_1 = models.CharField(_("ISO 639-1 code"), max_length=7)
     iso639_2t = models.CharField(_("ISO 639-2/T code"), max_length=3)
     iso639_2b = models.CharField(_("ISO 639-2/B code"), max_length=3)
 
     def __str__(self):
-        return self.language
+        return str(self.language)
 
     class Meta:
         verbose_name = _("language")
@@ -341,55 +360,57 @@ class MemberLanguage(UUIDModel):
     level = models.CharField(_("level"), max_length=15, choices=LANGUAGE_LEVELS, default=LANGUAGE_LEVELS.mother_tongue)
 
     def __str__(self):
-        return '{} ({})'.format(self.language, self.level)
+        return '{} ({})'.format(str(self.language), str(self.level))
 
     class Meta:
         verbose_name = _("member language")
         verbose_name_plural = _("member languages")
 
 
-class Hobby(UUIDModel):
-    hobby = models.CharField(_("hobby"), max_length=31)
+class Interest(UUIDModel):
+    interest = models.CharField(_("interest"), max_length=31)
 
     def __str__(self):
-        return self.hobby
+        return str(self.interest)
 
     class Meta:
-        verbose_name = _("hobby")
-        verbose_name_plural = _("hobbies")
+        verbose_name = _("interest")
+        verbose_name_plural = _("interests")
 
 
-class MemberHobby(UUIDModel):
+class MemberInterest(UUIDModel):
     member = models.ForeignKey(
         Member,
         on_delete = models.CASCADE,
-        related_name = 'member_hobbies',
-        verbose_name = _("member")
+        related_name = 'member_interests',
+        verbose_name = _("member"),
     )
 
-    hobby = models.ForeignKey(
-        Hobby,
+    interest = models.ForeignKey(
+        Interest,
         on_delete = models.PROTECT,
-        related_name = 'member_hobbies',
-        verbose_name = _("hobby")
+        related_name = 'member_interests',
+        verbose_name = _("hointerest"),
     )
 
     order = models.PositiveIntegerField(_('Order'), default=0)
 
     def __str__(self):
-        return self.hobby
+        return str(self.interest)
 
     class Meta:
-        verbose_name = _("member hobby")
-        verbose_name_plural = _("member hobbies")
+        verbose_name = _("member interest")
+        verbose_name_plural = _("member interests")
 
 
-class MemberTravel(TranslatableModel, UUIDModel):
+class MemberTravel(UUIDModel):
     member = models.ForeignKey(
         Member,
-        on_delete = models.CASCADE,
+        on_delete = models.SET_NULL,
         related_name = 'member_travels',
-        verbose_name = _("member")
+        verbose_name = _("member"),
+        null = True,
+        blank = False,
     )
 
     city = models.ForeignKey(
@@ -404,10 +425,6 @@ class MemberTravel(TranslatableModel, UUIDModel):
     visit_date_to = models.DateField(_("to"))
     plan = models.BooleanField(_("plan"), default=False)
 
-    translations = TranslatedFields(
-        feedback = models.TextField(_("feedback"), max_length=4095, null=True, blank=True),
-    )
-
     def get_region(self):
         return self.city.region
 
@@ -415,11 +432,47 @@ class MemberTravel(TranslatableModel, UUIDModel):
         return self.city.country
 
     def __str__(self):
-        return '{}, {}, {}'.format(self.city, self.get_region(), self.get_country())
+        return '{}, {}, {}'.format(
+            str(self.city), 
+            str(self.get_region()), 
+            str(self.get_country())
+        )
 
     class Meta:
         verbose_name = _("member travel")
         verbose_name_plural = _("member travels")
+
+
+class MemberTravelMessages(UUIDModel):
+
+    member_travel = models.ForeignKey(
+        MemberTravel,
+        on_delete = models.SET_NULL,
+        related_name = 'member_travel_messages',
+        verbose_name = _("member travel"),
+        null = True,
+        blank = True,
+    )
+
+    sender = models.ForeignKey(
+        Member,
+        on_delete = models.SET_NULL,
+        related_name = 'member_travel_messages',
+        verbose_name = _("sender"),
+        null = True,
+        blank = True,
+    )
+
+    translations = TranslatedFields(
+        message = models.TextField(_("message"), max_length=4095, null=True, blank=True),
+    )
+
+    def __str__(self):
+        return str(self.member_travel)
+
+    class Meta:
+        verbose_name = _("member travel message")
+        verbose_name_plural = _("member travel messages")
 
 
 class MemberLoginHistory(UUIDModel):
@@ -442,7 +495,11 @@ class MemberLoginHistory(UUIDModel):
     longitude = models.DecimalField(_("longitude"), max_digits=8, decimal_places=6, default=0),
 
     def __str__(self):
-        return '{} / {} / {}'.format(self.ip_address, self.ip_country, self.created_at)
+        return '{} / {} / {}'.format(
+            str(self.ip_address), 
+            str(self.ip_country), 
+            str(self.created_at),
+        )
 
     class Meta:
         verbose_name = _("member login history")
@@ -478,7 +535,7 @@ class MemberRelation(UUIDModel):
     confirmed_inappropriate = models.BooleanField(_("confirmed inappropriate"), default=False)
 
     def __str__(self):
-        return '{} - {}'.format(self.from_member, self.to_member)
+        return '{} - {}'.format(str(self.from_member), str(self.to_member))
 
     class Meta:
         verbose_name = _("member relation")
@@ -505,7 +562,7 @@ class Message(UUIDModel):
     is_spam = models.BooleanField(_("is spam"), default=False)
 
     def __str__(self):
-        return '{} - {}'.format(self.from_member, self.to_member)
+        return '{} - {}'.format(str(self.from_member), str(self.to_member))
 
     class Meta:
         verbose_name = _("message")
