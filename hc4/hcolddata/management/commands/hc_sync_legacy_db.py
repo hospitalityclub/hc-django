@@ -1,6 +1,9 @@
 from django.core.management.base import BaseCommand
 from django.conf import settings
 
+from hccore import models as new
+from hcolddata import models as old
+
 
 class Command(BaseCommand):
 
@@ -40,4 +43,8 @@ class Command(BaseCommand):
 
     def sync_countries(self, overwrite=False):
         self.stdout.write(self.style.MIGRATE_HEADING('Synchronizing Countries'))
-
+        nc = new.Country.objects.all()
+        oc = old.Countries.objects.all()
+        self.stdout.write(' Countries in the new database: {}'.format(str(nc.count())))
+        self.stdout.write(' Countries in the old database: {}'.format(str(oc.count())))
+        
