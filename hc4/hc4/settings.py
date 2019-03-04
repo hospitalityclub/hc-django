@@ -78,6 +78,7 @@ INSTALLED_APPS = [
 
     'node_modules',
     'hccore',
+    'hcolddata',
 ]
 
 MIDDLEWARE = [
@@ -136,6 +137,14 @@ DATABASES = {
         'PASSWORD': 'WeWillImportItFromEnvV@rs1nPR0duction',
         'HOST': 'localhost',
         'PORT': '5432',
+    },
+    'legacy': {
+        'ENGINE': 'django.db.backends.mysql',
+        'NAME': 'hc-old-fake',
+        'USER': 'hc',
+        'PASSWORD': 'WeWill1mport1t',
+        'HOST': 'localhost',
+        'PORT': '3306',
     }
 }
 
