@@ -17,7 +17,7 @@ class Command(BaseCommand):
         )
 
         parser.add_argument(
-            '--countries',
+            '-c, --countries',
             action = 'store_true',
             dest = 'sync_countries',
             help = 'synchronize countries',
@@ -47,4 +47,18 @@ class Command(BaseCommand):
         oc = old.Countries.objects.all()
         self.stdout.write(' Countries in the new database: {}'.format(str(nc.count())))
         self.stdout.write(' Countries in the old database: {}'.format(str(oc.count())))
-        
+        # fc is the found countries list. This list will be the indication of "in sync" countries
+        fc = {}
+        # nc is the not found countries list.
+        nc = {}
+        for o in nc:
+            # f is the city currently being synced
+            for n in nc:
+                if o.name == n.name:
+                    self.stdout.write('  Found {}'.format(o.name))
+                    fc.update({o.name: n})
+                    oc
+                
+
+
+

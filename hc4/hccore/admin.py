@@ -1,7 +1,12 @@
+from cities_light.admin import CountryAdmin
 from django.contrib import admin
 from django.utils.translation import gettext_lazy as _
 from hvad.admin import TranslatableAdmin
 from . import models
+
+
+class HCCountryAdmin(CountryAdmin):
+    autocomplete_fields = ['capital']
 
 
 class AddressAdmin(TranslatableAdmin):
@@ -53,6 +58,9 @@ class MemberTravelAdmin(TranslatableAdmin):
 
 
 admin.site.site_header = _("Hospitality Club Admin")
+if admin.site.is_registered(models.Country):
+    admin.site.unregister(models.Country)
+admin.site.register(models.Country, HCCountryAdmin)
 admin.site.register(models.Address, AddressAdmin)
 admin.site.register(models.Member, MemberAdmin)
 admin.site.register(models.Language)

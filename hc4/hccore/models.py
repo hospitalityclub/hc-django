@@ -1,4 +1,6 @@
-from cities_light.models import City, Country
+from cities_light.abstract_models import (AbstractCity, AbstractRegion,
+    AbstractCountry)
+from cities_light.receivers import connect_default_signals
 from django.db import models
 from django.conf import settings
 from django.utils.translation import gettext_lazy as _
@@ -27,6 +29,30 @@ class UUIDModel(models.Model):
 
     class Meta:
         abstract = True
+
+
+class Country(AbstractCountry):
+    legacy_id = models.PositiveIntegerField(_("legacy ID"), default=0)
+    has_regions = models.BooleanField(_("has regions"), default=False)
+    spam_index = models.PositiveIntegerField(_("SPAM index"), default=0)
+    capital = models.ForeignKey(
+        'City',
+        on_delete = models.CASCADE,
+        related_name = 'capital_of',
+        verbose_name = _("capital"),
+        null = True,
+        blank = True,
+    )
+
+connect_default_signals(Country)
+
+class Region(AbstractRegion):
+    legacy_id = models.PositiveIntegerField(_("legacy ID"), default=0)
+connect_default_signals(Region)
+
+class City(AbstractCity):
+    legacy_id = models.PositiveIntegerField(_("legacy ID"), default=0)
+connect_default_signals(City)
 
 
 class Member(UUIDModel):

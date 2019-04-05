@@ -81,6 +81,8 @@ INSTALLED_APPS = [
     'hcolddata',
 ]
 
+CITIES_LIGHT_APP_NAME = 'hccore'
+
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
